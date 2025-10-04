@@ -1,0 +1,16 @@
+# Node / JS
+node_modules/
+package-lock.json
+
+# Python cache (if any)
+__pycache__/
+*.pyc
+
+# Backup / temporary files
+backup1/
+samples/
+
+# IDE files
+.vscode/
+*.log
+

@@ -1,0 +1,2682 @@
+"use client"
+
+import type React from "react"
+
+import { useEffect, useState } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
+import { useRouter } from "next/navigation"
+import { Plus, LogOut, FileText, Upload, File, Calendar, ImageIcon, Trash2 } from "lucide-react"
+
+interface Announcement {
+  _id: string
+  title: string
+  content: string
+  category?: string
+  urgent?: boolean
+  createdAt: string
+}
+
+interface Note {
+  _id: string
+  title: string
+  branch: string
+  semester: number
+  subjectCode: string
+  fileName: string
+  uploadedBy: string
+  createdAt: string
+}
+
+interface Event {
+  _id: string
+  title: string
+  description: string
+  date: string
+  time: string
+  venue: string
+  category: string
+  attendees: string
+  featured: boolean
+  createdAt: string
+}
+
+interface GalleryImage {
+  _id: string
+  title: string
+  description: string
+  category: string
+  imageUrl: string
+  uploadedBy: string
+  createdAt: string
+}
+
+export default function AdminDashboard() {
+  const [announcements, setAnnouncements] = useState<Announcement[]>([])
+  const [notes, setNotes] = useState<Note[]>([])
+  const [events, setEvents] = useState<Event[]>([])
+  const [title, setTitle] = useState("")
+  const [content, setContent] = useState("")
+  const [category, setCategory] = useState("Academic")
+  const [urgent, setUrgent] = useState(false)
+  const [noteTitle, setNoteTitle] = useState("")
+  const [noteBranch, setNoteBranch] = useState("CSE")
+  const [noteSemester, setNoteSemester] = useState("1")
+  const [subjectCode, setSubjectCode] = useState("")
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [eventTitle, setEventTitle] = useState("")
+  const [eventDescription, setEventDescription] = useState("")
+  const [eventDate, setEventDate] = useState("")
+  const [eventTime, setEventTime] = useState("")
+  const [eventVenue, setEventVenue] = useState("")
+  const [eventCategory, setEventCategory] = useState("Academic")
+  const [eventAttendees, setEventAttendees] = useState("")
+  const [eventFeatured, setEventFeatured] = useState(false)
+  const [message, setMessage] = useState("")
+  const [noteMessage, setNoteMessage] = useState("")
+  const [eventMessage, setEventMessage] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [noteLoading, setNoteLoading] = useState(false)
+  const [eventLoading, setEventLoading] = useState(false)
+  const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([])
+  const [galleryTitle, setGalleryTitle] = useState("")
+  const [galleryDescription, setGalleryDescription] = useState("")
+  const [galleryCategory, setGalleryCategory] = useState("Campus")
+  const [selectedGalleryFile, setSelectedGalleryFile] = useState<File | null>(null)
+  const [galleryMessage, setGalleryMessage] = useState("")
+  const [galleryLoading, setGalleryLoading] = useState(false)
+  const [isDemo, setIsDemo] = useState(false)
+  const router = useRouter()
+
+  useEffect(() => {
+    const token = localStorage.getItem("token")
+    if (!token) {
+      router.push("/admin/login")
+      return
+    }
+
+    setIsDemo(token.startsWith("demo-token"))
+
+    fetchAnnouncements()
+    fetchNotes()
+    fetchEvents()
+    fetchGalleryImages()
+  }, [router])
+
+  const fetchAnnouncements = async () => {
+    try {
+      const res = await fetch("http://localhost:5000/api/announcements")
+      const data = await res.json()
+      if (data.success) {
+        setAnnouncements(data.data)
+      }
+    } catch (err) {
+      console.error("Error fetching announcements:", err)
+    }
+  }
+
+  const fetchNotes = async () => {
+    try {
+      const res = await fetch("http://localhost:5000/api/notes")
+      const data = await res.json()
+      if (data.success) {
+        setNotes(data.data)
+      }
+    } catch (err) {
+      console.error("Error fetching notes:", err)
+    }
+  }
+
+  const fetchEvents = async () => {
+    try {
+      const res = await fetch("http://localhost:5000/api/events")
+      const data = await res.json()
+      if (data.success) {
+        setEvents(data.data)
+      }
+    } catch (err) {
+      console.error("Error fetching events:", err)
+    }
+  }
+
+  const fetchGalleryImages = async () => {
+    try {
+      const res = await fetch("http://localhost:5000/api/gallery")
+      const data = await res.json()
+      if (data.success) {
+        setGalleryImages(data.data)
+      }
+    } catch (err) {
+      console.log("[v0] Backend not available, using demo gallery data")
+      setGalleryImages([
+        {
+          _id: "1",
+          title: "Campus Overview",
+          description: "Aerial view of our beautiful campus",
+          category: "Campus",
+          imageUrl: "/modern-college-campus-aerial-view.jpg",
+          uploadedBy: "admin",
+          createdAt: new Date().toISOString(),
+        },
+        {
+          _id: "2",
+          title: "Computer Lab",
+          description: "State-of-the-art computer laboratory",
+          category: "Facilities",
+          imageUrl: "/modern-computer-science-laboratory.jpg",
+          uploadedBy: "admin",
+          createdAt: new Date().toISOString(),
+        },
+      ])
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setMessage("")
+    setLoading(true)
+
+    const token = localStorage.getItem("token")
+    if (!token) {
+      router.push("/admin/login")
+      return
+    }
+
+    try {
+      const res = await fetch("http://localhost:5000/api/announcements", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ title, content, category, urgent }),
+      })
+
+      const data = await res.json()
+
+      if (data.success) {
+        setMessage("Announcement created successfully!")
+        setTitle("")
+        setContent("")
+        setCategory("Academic")
+        setUrgent(false)
+        fetchAnnouncements()
+      } else {
+        setMessage(data.message || "Failed to create announcement")
+      }
+    } catch (err) {
+      setMessage("Error creating announcement")
+      console.error("Create announcement error:", err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleNoteUpload = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setNoteMessage("")
+    setNoteLoading(true)
+
+    const token = localStorage.getItem("token")
+    if (!token) {
+      router.push("/admin/login")
+      return
+    }
+
+    if (!selectedFile) {
+      setNoteMessage("Please select a file to upload")
+      setNoteLoading(false)
+      return
+    }
+
+    try {
+      const formData = new FormData()
+      formData.append("file", selectedFile)
+      formData.append("title", noteTitle)
+      formData.append("branch", noteBranch)
+      formData.append("semester", noteSemester)
+      formData.append("subjectCode", subjectCode)
+
+      const res = await fetch("http://localhost:5000/api/notes", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      })
+
+      const data = await res.json()
+
+      if (data.success) {
+        setNoteMessage("Note uploaded successfully!")
+        setNoteTitle("")
+        setSubjectCode("")
+        setSelectedFile(null)
+        const fileInput = document.getElementById("noteFile") as HTMLInputElement
+        if (fileInput) fileInput.value = ""
+        fetchNotes()
+      } else {
+        setNoteMessage(data.message || "Failed to upload note")
+      }
+    } catch (err) {
+      setNoteMessage("Error uploading note")
+      console.error("Upload note error:", err)
+    } finally {
+      setNoteLoading(false)
+    }
+  }
+
+  const handleEventSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setEventMessage("")
+    setEventLoading(true)
+
+    const token = localStorage.getItem("token")
+    if (!token) {
+      router.push("/admin/login")
+      return
+    }
+
+    try {
+      const res = await fetch("http://localhost:5000/api/events", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          title: eventTitle,
+          description: eventDescription,
+          date: eventDate,
+          time: eventTime,
+          venue: eventVenue,
+          category: eventCategory,
+          attendees: eventAttendees,
+          featured: eventFeatured,
+        }),
+      })
+
+      const data = await res.json()
+
+      if (data.success) {
+        setEventMessage("Event created successfully!")
+        setEventTitle("")
+        setEventDescription("")
+        setEventDate("")
+        setEventTime("")
+        setEventVenue("")
+        setEventCategory("Academic")
+        setEventAttendees("")
+        setEventFeatured(false)
+        fetchEvents()
+      } else {
+        setEventMessage(data.message || "Failed to create event")
+      }
+    } catch (err) {
+      setEventMessage("Error creating event")
+      console.error("Create event error:", err)
+    } finally {
+      setEventLoading(false)
+    }
+  }
+
+  const handleGalleryUpload = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setGalleryMessage("")
+    setGalleryLoading(true)
+
+    const token = localStorage.getItem("token")
+    if (!token) {
+      router.push("/admin/login")
+      return
+    }
+
+    if (!selectedGalleryFile) {
+      setGalleryMessage("Please select an image to upload")
+      setGalleryLoading(false)
+      return
+    }
+
+    try {
+      if (isDemo) {
+        const newImage: GalleryImage = {
+          _id: Date.now().toString(),
+          title: galleryTitle,
+          description: galleryDescription,
+          category: galleryCategory,
+          imageUrl: URL.createObjectURL(selectedGalleryFile),
+          uploadedBy: "admin",
+          createdAt: new Date().toISOString(),
+        }
+        setGalleryImages((prev) => [newImage, ...prev])
+        setGalleryMessage("Image uploaded successfully! (Demo Mode)")
+      } else {
+        const formData = new FormData()
+        formData.append("image", selectedGalleryFile)
+        formData.append("title", galleryTitle)
+        formData.append("description", galleryDescription)
+        formData.append("category", galleryCategory)
+
+        const res = await fetch("http://localhost:5000/api/gallery", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        })
+
+        const data = await res.json()
+
+        if (data.success) {
+          setGalleryMessage("Image uploaded successfully!")
+          fetchGalleryImages()
+        } else {
+          setGalleryMessage(data.message || "Failed to upload image")
+        }
+      }
+
+      setGalleryTitle("")
+      setGalleryDescription("")
+      setGalleryCategory("Campus")
+      setSelectedGalleryFile(null)
+      const fileInput = document.getElementById("galleryFile") as HTMLInputElement
+      if (fileInput) fileInput.value = ""
+    } catch (err) {
+      setGalleryMessage("Error uploading image")
+      console.error("Upload image error:", err)
+    } finally {
+      setGalleryLoading(false)
+    }
+  }
+
+  const deleteGalleryImage = async (imageId: string) => {
+    const token = localStorage.getItem("token")
+    if (!token) return
+
+    try {
+      if (isDemo) {
+        setGalleryImages((prev) => prev.filter((img) => img._id !== imageId))
+        return
+      }
+
+      const res = await fetch(`http://localhost:5000/api/gallery/${imageId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      const data = await res.json()
+      if (data.success) {
+        fetchGalleryImages()
+      }
+    } catch (err) {
+      console.error("Delete image error:", err)
+    }
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem("token")
+    router.push("/admin/login")
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+              {isDemo && <p className="text-sm text-blue-600">Running in Demo Mode - Backend not connected</p>}
+            </div>
+            <Button onClick={handleLogout} variant="outline">
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid gap-8 lg:grid-cols-2 xl:grid-cols-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Plus className="h-5 w-5" />
+                Create New Announcement
+              </CardTitle>
+              <CardDescription>Add a new announcement for students and faculty</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="title">Title</Label>
+                  <Input
+                    id="title"
+                    placeholder="Enter announcement title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="content">Content</Label>
+                  <Textarea
+                    id="content"
+                    placeholder="Enter announcement content"
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    rows={4}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="category">Category</Label>
+                  <Select value={category} onValueChange={setCategory}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Academic">Academic</SelectItem>
+                      <SelectItem value="Event">Event</SelectItem>
+                      <SelectItem value="Placement">Placement</SelectItem>
+                      <SelectItem value="Infrastructure">Infrastructure</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox id="urgent" checked={urgent} onCheckedChange={(checked) => setUrgent(checked as boolean)} />
+                  <Label htmlFor="urgent">Mark as urgent</Label>
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? "Creating..." : "Create Announcement"}
+                </Button>
+                {message && (
+                  <Alert
+                    className={
+                      message.includes("successfully") ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"
+                    }
+                  >
+                    <AlertDescription className={message.includes("successfully") ? "text-green-800" : "text-red-800"}>
+                      {message}
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Upload className="h-5 w-5" />
+                Upload Study Notes
+              </CardTitle>
+              <CardDescription>Upload PDF notes for students to download</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleNoteUpload} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="noteTitle">Note Title</Label>
+                  <Input
+                    id="noteTitle"
+                    placeholder="e.g., Data Structures - Unit 1"
+                    value={noteTitle}
+                    onChange={(e) => setNoteTitle(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="subjectCode">Subject Code</Label>
+                  <Input
+                    id="subjectCode"
+                    placeholder="e.g., BCS401"
+                    value={subjectCode}
+                    onChange={(e) => setSubjectCode(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="noteBranch">Branch</Label>
+                    <Select value={noteBranch} onValueChange={setNoteBranch}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="CSE">CSE</SelectItem>
+                        <SelectItem value="ECE">ECE</SelectItem>
+                        <SelectItem value="Civil">Civil</SelectItem>
+                        <SelectItem value="Silk & Textile">Silk & Textile</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="noteSemester">Semester</Label>
+                    <Select value={noteSemester} onValueChange={setNoteSemester}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
+                          <SelectItem key={sem} value={sem.toString()}>
+                            {sem}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="noteFile">PDF File</Label>
+                  <Input
+                    id="noteFile"
+                    type="file"
+                    accept=".pdf"
+                    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                    required
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={noteLoading}>
+                  {noteLoading ? "Uploading..." : "Upload Note"}
+                </Button>
+                {noteMessage && (
+                  <Alert
+                    className={
+                      noteMessage.includes("successfully") ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"
+                    }
+                  >
+                    <AlertDescription
+                      className={noteMessage.includes("successfully") ? "text-green-800" : "text-red-800"}
+                    >
+                      {noteMessage}
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Create New Event
+              </CardTitle>
+              <CardDescription>Add a new event for students and faculty</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleEventSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="eventTitle">Event Title</Label>
+                  <Input
+                    id="eventTitle"
+                    placeholder="Enter event title"
+                    value={eventTitle}
+                    onChange={(e) => setEventTitle(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="eventDescription">Description</Label>
+                  <Textarea
+                    id="eventDescription"
+                    placeholder="Enter event description"
+                    value={eventDescription}
+                    onChange={(e) => setEventDescription(e.target.value)}
+                    rows={3}
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="eventDate">Date</Label>
+                    <Input
+                      id="eventDate"
+                      type="date"
+                      value={eventDate}
+                      onChange={(e) => setEventDate(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="eventTime">Time</Label>
+                    <Input
+                      id="eventTime"
+                      placeholder="e.g., 9:00 AM - 5:00 PM"
+                      value={eventTime}
+                      onChange={(e) => setEventTime(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="eventVenue">Venue</Label>
+                  <Input
+                    id="eventVenue"
+                    placeholder="Enter event venue"
+                    value={eventVenue}
+                    onChange={(e) => setEventVenue(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="eventCategory">Category</Label>
+                    <Select value={eventCategory} onValueChange={setEventCategory}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Academic">Academic</SelectItem>
+                        <SelectItem value="Technical">Technical</SelectItem>
+                        <SelectItem value="Cultural">Cultural</SelectItem>
+                        <SelectItem value="Sports">Sports</SelectItem>
+                        <SelectItem value="Career">Career</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="eventAttendees">Expected Attendees</Label>
+                    <Input
+                      id="eventAttendees"
+                      placeholder="e.g., 500+"
+                      value={eventAttendees}
+                      onChange={(e) => setEventAttendees(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="eventFeatured"
+                    checked={eventFeatured}
+                    onCheckedChange={(checked) => setEventFeatured(checked as boolean)}
+                  />
+                  <Label htmlFor="eventFeatured">Mark as featured event</Label>
+                </div>
+                <Button type="submit" className="w-full" disabled={eventLoading}>
+                  {eventLoading ? "Creating..." : "Create Event"}
+                </Button>
+                {eventMessage && (
+                  <Alert
+                    className={
+                      eventMessage.includes("successfully")
+                        ? "border-green-200 bg-green-50"
+                        : "border-red-200 bg-red-50"
+                    }
+                  >
+                    <AlertDescription
+                      className={eventMessage.includes("successfully") ? "text-green-800" : "text-red-800"}
+                    >
+                      {eventMessage}
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ImageIcon className="h-5 w-5" />
+                Upload Gallery Image
+              </CardTitle>
+              <CardDescription>Add images to the college gallery</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleGalleryUpload} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="galleryTitle">Image Title</Label>
+                  <Input
+                    id="galleryTitle"
+                    placeholder="Enter image title"
+                    value={galleryTitle}
+                    onChange={(e) => setGalleryTitle(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="galleryDescription">Description</Label>
+                  <Textarea
+                    id="galleryDescription"
+                    placeholder="Enter image description"
+                    value={galleryDescription}
+                    onChange={(e) => setGalleryDescription(e.target.value)}
+                    rows={3}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="galleryCategory">Category</Label>
+                  <Select value={galleryCategory} onValueChange={setGalleryCategory}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Campus">Campus</SelectItem>
+                      <SelectItem value="Facilities">Facilities</SelectItem>
+                      <SelectItem value="Events">Events</SelectItem>
+                      <SelectItem value="Students">Students</SelectItem>
+                      <SelectItem value="Faculty">Faculty</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="galleryFile">Image File</Label>
+                  <Input
+                    id="galleryFile"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setSelectedGalleryFile(e.target.files?.[0] || null)}
+                    required
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={galleryLoading}>
+                  {galleryLoading ? "Uploading..." : "Upload Image"}
+                </Button>
+                {galleryMessage && (
+                  <Alert
+                    className={
+                      galleryMessage.includes("successfully")
+                        ? "border-green-200 bg-green-50"
+                        : "border-red-200 bg-red-50"
+                    }
+                  >
+                    <AlertDescription
+                      className={galleryMessage.includes("successfully") ? "text-green-800" : "text-red-800"}
+                    >
+                      {galleryMessage}
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="mt-8 grid gap-8 lg:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Recent Announcements
+              </CardTitle>
+              <CardDescription>Latest announcements from the system</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                {announcements.slice(0, 5).map((announcement) => (
+                  <div key={announcement._id} className="border rounded-lg p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <h4 className="font-medium text-sm">{announcement.title}</h4>
+                      {announcement.urgent && (
+                        <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">Urgent</span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">{announcement.content}</p>
+                    <p className="text-xs text-gray-500 mt-2">
+                      {new Date(announcement.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Recent Events
+              </CardTitle>
+              <CardDescription>Latest events created in the system</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                {events.slice(0, 5).map((event) => (
+                  <div key={event._id} className="border rounded-lg p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <h4 className="font-medium text-sm">{event.title}</h4>
+                      {event.featured && (
+                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Featured</span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">{event.description}</p>
+                    <div className="flex items-center gap-4 text-xs text-gray-500 mt-2">
+                      <span>{new Date(event.date).toLocaleDateString()}</span>
+                      <span>{event.venue}</span>
+                      <span className="bg-gray-100 px-2 py-1 rounded">{event.category}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="mt-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <File className="h-5 w-5" />
+                Recently Uploaded Notes
+              </CardTitle>
+              <CardDescription>Latest notes uploaded to the system</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {notes.slice(0, 6).map((note) => (
+                  <div key={note._id} className="border rounded-lg p-4">
+                    <h4 className="font-medium text-sm mb-2">{note.title}</h4>
+                    <div className="space-y-1 text-xs text-gray-600">
+                      <p>
+                        <span className="font-medium">Subject:</span> {note.subjectCode}
+                      </p>
+                      <p>
+                        <span className="font-medium">Branch:</span> {note.branch}
+                      </p>
+                      <p>
+                        <span className="font-medium">Semester:</span> {note.semester}
+                      </p>
+                      <p>
+                        <span className="font-medium">File:</span> {note.fileName}
+                      </p>
+                      <p className="text-gray-500 mt-2">{new Date(note.createdAt).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="mt-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ImageIcon className="h-5 w-5" />
+                Gallery Management
+              </CardTitle>
+              <CardDescription>Manage uploaded gallery images</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {galleryImages.map((image) => (
+                  <div key={image._id} className="border rounded-lg overflow-hidden">
+                    <img
+                      src={image.imageUrl || "/placeholder.svg"}
+                      alt={image.title}
+                      className="w-full h-32 object-cover"
+                    />
+                    <div className="p-3">
+                      <h4 className="font-medium text-sm mb-1">{image.title}</h4>
+                      <p className="text-xs text-gray-600 mb-2 line-clamp-2">{image.description}</p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs bg-gray-100 px-2 py-1 rounded">{image.category}</span>
+                        <Button size="sm" variant="destructive" onClick={() => deleteGalleryImage(image._id)}>
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  )
+}
+this is the dashboard ,,, ,,,,  "use client"
+
+import type React from "react"
+
+import { useState } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useRouter } from "next/navigation"
+
+export default function AdminLogin() {
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [message, setMessage] = useState("")
+  const [loading, setLoading] = useState(false)
+  const router = useRouter()
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setMessage("")
+    setLoading(true)
+
+    // Demo credentials: admin@sksj.edu.in / admin123
+    const demoCredentials = {
+      email: "admin@sksj.edu.in",
+      password: "admin123",
+    }
+
+    try {
+      const res = await fetch("http://localhost:5000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      })
+
+      const data = await res.json()
+
+      if (data.success) {
+        localStorage.setItem("token", data.token)
+        localStorage.setItem("adminEmail", email)
+        setMessage("Login successful! Redirecting...")
+        setTimeout(() => {
+          router.push("/admin/dashboard")
+        }, 1000)
+      } else {
+        setMessage(data.message || "Login failed")
+      }
+    } catch (err) {
+      console.log("[v0] Backend connection failed, using demo mode")
+      if (email === demoCredentials.email && password === demoCredentials.password) {
+        localStorage.setItem("token", "demo-token-" + Date.now())
+        localStorage.setItem("adminEmail", email)
+        setMessage("Login successful! (Demo Mode) Redirecting...")
+        setTimeout(() => {
+          router.push("/admin/dashboard")
+        }, 1000)
+      } else {
+        setMessage("Invalid credentials. Demo login: admin@sksj.edu.in / admin123")
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-bold">Admin Login</CardTitle>
+          <CardDescription>Sign in to access the admin dashboard</CardDescription>
+          <div className="mt-2 p-2 bg-blue-50 rounded text-sm text-blue-700">
+            <strong>Demo Credentials:</strong>
+            <br />
+            Email: admin@sksj.edu.in
+            <br />
+            Password: admin123
+          </div>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="admin@sksj.edu.in"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "Signing in..." : "Sign In"}
+            </Button>
+            {message && (
+              <Alert
+                className={message.includes("successful") ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}
+              >
+                <AlertDescription className={message.includes("successful") ? "text-green-800" : "text-red-800"}>
+                  {message}
+                </AlertDescription>
+              </Alert>
+            )}
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+this is the login,,,,,, "use client"
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Calendar, Clock, Users, BookOpen, Building } from "lucide-react"
+import { useEffect, useState } from "react"
+
+interface Announcement {
+  _id: string
+  title: string
+  content: string
+  category?: string
+  urgent?: boolean
+  createdAt: string
+}
+
+const categoryColors = {
+  Academic: "bg-blue-100 text-blue-800",
+  Event: "bg-green-100 text-green-800",
+  Placement: "bg-purple-100 text-purple-800",
+  Infrastructure: "bg-orange-100 text-orange-800",
+}
+
+const categoryIcons = {
+  Academic: BookOpen,
+  Event: Users,
+  Placement: Building,
+  Infrastructure: Building,
+}
+
+export default function AnnouncementsPage() {
+  const [announcements, setAnnouncements] = useState<Announcement[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchAnnouncements = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/api/announcements")
+        const data = await res.json()
+        if (data.success) {
+          setAnnouncements(data.data)
+        } else {
+          setError("Failed to fetch announcements")
+        }
+      } catch (err) {
+        setError("Error connecting to server. Please try again later.")
+        console.error("Error fetching announcements:", err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchAnnouncements()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading announcements...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>Try Again</Button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header Section */}
+      <section className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center">
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">Announcements</h1>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto text-pretty">
+              Stay updated with the latest news, events, and important information from Government S.K.S.J. Technology
+              Institute
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Announcements Grid */}
+      <section className="py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {announcements.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-600">No announcements available at the moment.</p>
+            </div>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {announcements.map((announcement) => {
+                const category = announcement.category || "Academic"
+                const IconComponent = categoryIcons[category as keyof typeof categoryIcons] || BookOpen
+                const formattedDate = new Date(announcement.createdAt).toLocaleDateString("en-IN", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })
+
+                return (
+                  <Card
+                    key={announcement._id}
+                    className={`hover:shadow-lg transition-shadow ${announcement.urgent ? "ring-2 ring-red-200" : ""}`}
+                  >
+                    <CardHeader>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="bg-primary/10 p-2 rounded-lg">
+                            <IconComponent className="h-4 w-4 text-primary" />
+                          </div>
+                          <Badge
+                            variant="secondary"
+                            className={
+                              categoryColors[category as keyof typeof categoryColors] || categoryColors.Academic
+                            }
+                          >
+                            {category}
+                          </Badge>
+                        </div>
+                        {announcement.urgent && (
+                          <Badge variant="destructive" className="text-xs">
+                            Urgent
+                          </Badge>
+                        )}
+                      </div>
+                      <CardTitle className="text-lg leading-tight text-balance">{announcement.title}</CardTitle>
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Calendar className="h-3 w-3" />
+                        <span>{formattedDate}</span>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription className="text-pretty">{announcement.content}</CardDescription>
+                      <Button variant="outline" size="sm" className="mt-4 w-full bg-transparent">
+                        Read More
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Important Notice Section */}
+      <section className="bg-blue-50 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-white rounded-lg p-6 border border-blue-200">
+            <div className="flex items-start gap-4">
+              <div className="bg-blue-100 p-2 rounded-full">
+                <Clock className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-2">Important Notice</h3>
+                <p className="text-gray-600 text-pretty">
+                  For urgent announcements and emergency notifications, please check your college email regularly.
+                  Students are advised to visit the notice board daily for any last-minute updates.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  )
+}
+this is the announcements,,,,,,,    import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { MapPin, Phone, Mail, Clock, Building, Car, Bus } from "lucide-react"
+
+const contactInfo = [
+  {
+    icon: MapPin,
+    title: "Address",
+    details: [
+      "Government S.K.S.J. Technology Institute",
+      "30/A, Nrupathunga Rd, Ambedkar Veedhi",
+      "Sampangi Rama Nagar, Bengaluru, Karnataka 560001, India",
+    ],
+  },
+  {
+    icon: Phone,
+    title: "Phone Numbers",
+    details: ["Main Office: +91 80 2234 5678", "Admissions: +91 80 2234 5679", "Placement Cell: +91 80 2234 5680"],
+  },
+  {
+    icon: Mail,
+    title: "Email Addresses",
+    details: ["General: info@sksj.ac.in", "Admissions: admissions@sksj.ac.in", "Placements: placements@sksj.ac.in"],
+  },
+  {
+    icon: Clock,
+    title: "Office Hours",
+    details: ["Monday - Friday: 9:00 AM - 5:00 PM", "Saturday: 9:00 AM - 1:00 PM", "Sunday: Closed"],
+  },
+]
+
+const departments = [
+  {
+    name: "Admissions Office",
+    phone: "+91 80 2234 5679",
+    email: "admissions@sksj.ac.in",
+    location: "Ground Floor, Admin Block",
+  },
+  {
+    name: "Academic Office",
+    phone: "+91 80 2234 5681",
+    email: "academics@sksj.ac.in",
+    location: "First Floor, Admin Block",
+  },
+  {
+    name: "Placement Cell",
+    phone: "+91 80 2234 5680",
+    email: "placements@sksj.ac.in",
+    location: "Second Floor, Admin Block",
+  },
+  {
+    name: "Student Affairs",
+    phone: "+91 80 2234 5682",
+    email: "students@sksj.ac.in",
+    location: "Ground Floor, Student Center",
+  },
+]
+
+export default function ContactPage() {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header Section */}
+      <section className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center">
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">Contact Us</h1>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto text-pretty">
+              Get in touch with us for admissions, inquiries, or any assistance you need
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Contact Information Grid */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          {contactInfo.map((info, index) => {
+            const IconComponent = info.icon
+            return (
+              <Card key={index} className="text-center hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="bg-primary/10 p-3 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                    <IconComponent className="h-8 w-8 text-primary" />
+                  </div>
+                  <CardTitle className="text-lg">{info.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {info.details.map((detail, idx) => (
+                      <p key={idx} className="text-sm text-gray-600">
+                        {detail}
+                      </p>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+
+        <div className="grid lg:grid-cols-2 gap-8">
+          {/* Map Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
+                Campus Location
+              </CardTitle>
+              <CardDescription>Find us on the map</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-gray-200 rounded-lg h-80 flex items-center justify-center mb-4">
+                <div className="text-center">
+                  <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                  <p className="text-gray-600 font-medium">Interactive Map</p>
+                  <p className="text-sm text-gray-500">
+                    Government S.K.S.J. Technology Institute
+                    <br />
+                    30/A, Nrupathunga Rd, Sampangi Rama Nagar
+                    <br />
+                    Bengaluru, Karnataka 560001
+                  </p>
+                </div>
+              </div>
+
+              {/* Transportation Info */}
+              <div className="space-y-3">
+                <h4 className="font-medium text-gray-900">How to Reach</h4>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Car className="h-4 w-4" />
+                  <span>10 minutes from Majestic Railway Station</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Bus className="h-4 w-4" />
+                  <span>Bus routes: 201, 226, 298 (Sampangi Rama Nagar Stop)</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Department Contacts */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building className="h-5 w-5" />
+                Department Contacts
+              </CardTitle>
+              <CardDescription>Direct contact information for specific departments</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {departments.map((dept, index) => (
+                  <div key={index} className="border-l-4 border-primary/20 pl-4 py-2">
+                    <h4 className="font-medium text-gray-900">{dept.name}</h4>
+                    <div className="space-y-1 mt-2">
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Phone className="h-3 w-3" />
+                        <span>{dept.phone}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Mail className="h-3 w-3" />
+                        <span>{dept.email}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <MapPin className="h-3 w-3" />
+                        <span>{dept.location}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Emergency Contact */}
+        <Card className="mt-8 bg-red-50 border-red-200">
+          <CardHeader>
+            <CardTitle className="text-red-800">Emergency Contact</CardTitle>
+            <CardDescription className="text-red-600">For urgent matters and emergencies</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <h4 className="font-medium text-red-800 mb-2">24/7 Emergency Helpline</h4>
+                <div className="flex items-center gap-2 text-red-700">
+                  <Phone className="h-4 w-4" />
+                  <span className="font-medium">+91 80 2234 5688</span>
+                </div>
+              </div>
+              <div>
+                <h4 className="font-medium text-red-800 mb-2">Security Office</h4>
+                <div className="flex items-center gap-2 text-red-700">
+                  <Phone className="h-4 w-4" />
+                  <span className="font-medium">+91 80 2234 5687</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Call to Action */}
+        <div className="text-center mt-12">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Still Have Questions?</h2>
+          <p className="text-gray-600 mb-6 max-w-2xl mx-auto text-pretty">
+            Our team is here to help you with any questions about admissions, academics, or campus life.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button size="lg" asChild>
+              <a href="/feedback">Send Feedback</a>
+            </Button>
+            <Button variant="outline" size="lg">
+              Schedule a Visit
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+this is the contact,,,,,    import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Computer, Zap, Building2, Shirt, Users, BookOpen, Award, ArrowRight, GraduationCap } from "lucide-react"
+
+const departments = [
+  {
+    id: "cse",
+    name: "Computer Science & Engineering",
+    shortName: "CSE",
+    description:
+      "Explore the world of software development, artificial intelligence, machine learning, and cutting-edge computing technologies. Our CSE department prepares students for careers in tech giants and innovative startups.",
+    icon: Computer,
+    color: "bg-blue-500",
+    lightColor: "bg-blue-50",
+    textColor: "text-blue-600",
+    students: 800,
+    faculty: 45,
+    labs: 12,
+    specializations: ["AI & ML", "Data Science", "Cybersecurity", "Web Development", "Mobile App Development"],
+    achievements: [
+      "Top placement record with 98% success rate",
+      "Research publications in top-tier conferences",
+      "Industry partnerships with Google, Microsoft, Amazon",
+    ],
+  },
+  {
+    id: "ece",
+    name: "Electronics & Communication Engineering",
+    shortName: "ECE",
+    description:
+      "Master the fundamentals of electronics, communication systems, signal processing, and embedded systems. Our ECE graduates work in telecommunications, semiconductor, and IoT industries.",
+    icon: Zap,
+    color: "bg-yellow-500",
+    lightColor: "bg-yellow-50",
+    textColor: "text-yellow-600",
+    students: 650,
+    faculty: 38,
+    labs: 10,
+    specializations: ["VLSI Design", "Signal Processing", "Embedded Systems", "IoT", "Telecommunications"],
+    achievements: [
+      "State-of-the-art VLSI lab with latest tools",
+      "Industry collaborations with Intel, Qualcomm",
+      "Award-winning student projects in robotics",
+    ],
+  },
+  {
+    id: "civil",
+    name: "Civil Engineering",
+    shortName: "Civil",
+    description:
+      "Build the infrastructure of tomorrow with expertise in structural engineering, environmental engineering, transportation, and sustainable construction practices.",
+    icon: Building2,
+    color: "bg-green-500",
+    lightColor: "bg-green-50",
+    textColor: "text-green-600",
+    students: 550,
+    faculty: 32,
+    labs: 8,
+    specializations: [
+      "Structural Engineering",
+      "Environmental Engineering",
+      "Transportation",
+      "Geotechnical",
+      "Construction Management",
+    ],
+    achievements: [
+      "Green building certification programs",
+      "Partnerships with leading construction companies",
+      "Research in sustainable construction materials",
+    ],
+  },
+  {
+    id: "textile",
+    name: "Silk & Textile Engineering",
+    shortName: "Textile",
+    description:
+      "Innovate in the textile industry with knowledge of fiber science, fabric technology, textile manufacturing, and sustainable fashion practices.",
+    icon: Shirt,
+    color: "bg-purple-500",
+    lightColor: "bg-purple-50",
+    textColor: "text-purple-600",
+    students: 400,
+    faculty: 28,
+    labs: 6,
+    specializations: ["Fiber Science", "Fabric Technology", "Textile Chemistry", "Fashion Design", "Quality Control"],
+    achievements: [
+      "Collaboration with leading fashion brands",
+      "Research in eco-friendly textile materials",
+      "Modern textile manufacturing lab",
+    ],
+  },
+]
+
+export default function DepartmentsPage() {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header Section */}
+      <section className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center">
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">Our Departments</h1>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto text-pretty">
+              Discover our four specialized engineering departments, each offering world-class education and
+              cutting-edge research opportunities
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Departments Grid */}
+      <section className="py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid gap-8 md:grid-cols-2">
+            {departments.map((dept) => {
+              const IconComponent = dept.icon
+              return (
+                <Card key={dept.id} className="hover:shadow-xl transition-all duration-300 overflow-hidden">
+                  <CardHeader className={`${dept.lightColor} border-b`}>
+                    <div className="flex items-center gap-4">
+                      <div className={`${dept.color} p-3 rounded-lg text-white`}>
+                        <IconComponent className="h-8 w-8" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-2xl text-gray-900">{dept.name}</CardTitle>
+                        <Badge variant="secondary" className="mt-1">
+                          {dept.shortName}
+                        </Badge>
+                      </div>
+                    </div>
+                  </CardHeader>
+
+                  <CardContent className="p-6">
+                    <CardDescription className="text-base mb-6 text-pretty">{dept.description}</CardDescription>
+
+                    {/* Department Stats */}
+                    <div className="grid grid-cols-3 gap-4 mb-6">
+                      <div className="text-center">
+                        <div className="flex items-center justify-center mb-2">
+                          <Users className={`h-5 w-5 ${dept.textColor}`} />
+                        </div>
+                        <div className="text-2xl font-bold text-gray-900">{dept.students}</div>
+                        <div className="text-sm text-gray-600">Students</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="flex items-center justify-center mb-2">
+                          <GraduationCap className={`h-5 w-5 ${dept.textColor}`} />
+                        </div>
+                        <div className="text-2xl font-bold text-gray-900">{dept.faculty}</div>
+                        <div className="text-sm text-gray-600">Faculty</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="flex items-center justify-center mb-2">
+                          <BookOpen className={`h-5 w-5 ${dept.textColor}`} />
+                        </div>
+                        <div className="text-2xl font-bold text-gray-900">{dept.labs}</div>
+                        <div className="text-sm text-gray-600">Labs</div>
+                      </div>
+                    </div>
+
+                    {/* Specializations */}
+                    <div className="mb-6">
+                      <h4 className="font-semibold text-gray-900 mb-3">Specializations</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {dept.specializations.map((spec, index) => (
+                          <Badge key={index} variant="outline" className="text-xs">
+                            {spec}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Key Achievements */}
+                    <div className="mb-6">
+                      <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                        <Award className="h-4 w-4" />
+                        Key Achievements
+                      </h4>
+                      <ul className="space-y-2">
+                        {dept.achievements.map((achievement, index) => (
+                          <li key={index} className="text-sm text-gray-600 flex items-start gap-2">
+                            <div className={`w-1.5 h-1.5 rounded-full ${dept.color} mt-2 flex-shrink-0`} />
+                            {achievement}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <Button className="w-full" size="lg">
+                      Know More About {dept.shortName}
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Call to Action Section */}
+      <section className="bg-primary py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl font-bold text-white mb-4">Ready to Start Your Engineering Journey?</h2>
+          <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto text-pretty">
+            Join thousands of successful engineers who started their careers at Sunrise College of Engineering
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button size="lg" variant="secondary">
+              Apply Now
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="bg-transparent border-white text-white hover:bg-white hover:text-primary"
+            >
+              Download Brochure
+            </Button>
+          </div>
+        </div>
+      </section>
+    </div>
+  )
+}
+this is the department,,,,,    "use client"
+
+import { useEffect, useState } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Calendar, Clock, MapPin, Users, Camera, Award, Music, BookOpen, Gamepad2 } from "lucide-react"
+
+interface Event {
+  _id: string
+  title: string
+  description: string
+  date: string
+  time: string
+  venue: string
+  category: string
+  attendees: string
+  featured: boolean
+  createdAt: string
+}
+
+interface GalleryImage {
+  _id: string
+  title: string
+  description: string
+  category: string
+  imageUrl: string
+  createdAt: string
+}
+
+const categoryColors = {
+  Technical: "bg-blue-100 text-blue-800",
+  Academic: "bg-green-100 text-green-800",
+  Sports: "bg-orange-100 text-orange-800",
+  Cultural: "bg-purple-100 text-purple-800",
+  Career: "bg-indigo-100 text-indigo-800",
+}
+
+const iconMap = {
+  Technical: Award,
+  Academic: BookOpen,
+  Sports: Gamepad2,
+  Cultural: Music,
+  Career: Users,
+}
+
+export default function EventsPage() {
+  const [events, setEvents] = useState<Event[]>([])
+  const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+
+  useEffect(() => {
+    fetchEvents()
+    fetchGalleryImages()
+  }, [])
+
+  const fetchEvents = async () => {
+    try {
+      const res = await fetch("http://localhost:5000/api/events")
+      const data = await res.json()
+      if (data.success) {
+        setEvents(data.data)
+      } else {
+        setError("Failed to load events")
+      }
+    } catch (err) {
+      console.error("Error fetching events:", err)
+      setError("Failed to load events")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchGalleryImages = async () => {
+    try {
+      const res = await fetch("http://localhost:5000/api/gallery")
+      const data = await res.json()
+      if (data.success) {
+        setGalleryImages(data.data)
+      }
+    } catch (err) {
+      console.error("Error fetching gallery images:", err)
+    }
+  }
+
+  const handleEventRegistration = async (eventId: string) => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/events/${eventId}/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ studentName: "Guest User" }), // In real app, get from auth
+      })
+      const data = await res.json()
+      if (data.success) {
+        alert("Registration successful!")
+      } else {
+        alert("Registration failed. Please try again.")
+      }
+    } catch (err) {
+      console.error("Registration error:", err)
+      alert("Registration failed. Please try again.")
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading events...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>Try Again</Button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header Section */}
+      <section className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center">
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">Events & Gallery</h1>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto text-pretty">
+              Discover upcoming events and explore our vibrant campus life through our photo gallery
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Upcoming Events Section */}
+      <section className="py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Upcoming Events</h2>
+            <p className="text-gray-600">Don't miss out on these exciting upcoming events</p>
+          </div>
+
+          {events.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-600">No upcoming events at the moment.</p>
+            </div>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {events.map((event) => {
+                const IconComponent = iconMap[event.category as keyof typeof iconMap] || Award
+                return (
+                  <Card
+                    key={event._id}
+                    className={`hover:shadow-lg transition-shadow ${event.featured ? "ring-2 ring-primary/20" : ""}`}
+                  >
+                    <CardHeader>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="bg-primary/10 p-2 rounded-lg">
+                            <IconComponent className="h-4 w-4 text-primary" />
+                          </div>
+                          <Badge
+                            variant="secondary"
+                            className={categoryColors[event.category as keyof typeof categoryColors]}
+                          >
+                            {event.category}
+                          </Badge>
+                        </div>
+                        {event.featured && (
+                          <Badge variant="default" className="text-xs">
+                            Featured
+                          </Badge>
+                        )}
+                      </div>
+                      <CardTitle className="text-lg leading-tight text-balance">{event.title}</CardTitle>
+                    </CardHeader>
+
+                    <CardContent>
+                      <CardDescription className="mb-4 text-pretty">{event.description}</CardDescription>
+
+                      <div className="space-y-2 text-sm text-gray-600 mb-4">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-3 w-3" />
+                          <span>
+                            {new Date(event.date).toLocaleDateString("en-US", {
+                              weekday: "long",
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            })}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-3 w-3" />
+                          <span>{event.time}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-3 w-3" />
+                          <span>{event.venue}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Users className="h-3 w-3" />
+                          <span>{event.attendees} expected attendees</span>
+                        </div>
+                      </div>
+
+                      <Button
+                        className="w-full"
+                        variant={event.featured ? "default" : "outline"}
+                        onClick={() => handleEventRegistration(event._id)}
+                      >
+                        Register Now
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Gallery Section */}
+      <section className="py-12 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Campus Gallery</h2>
+            <p className="text-gray-600">Explore our vibrant campus life and modern facilities</p>
+          </div>
+
+          {galleryImages.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-600">Gallery images will be displayed here.</p>
+            </div>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {galleryImages.map((image) => (
+                <Card key={image._id} className="overflow-hidden hover:shadow-lg transition-shadow group">
+                  <div className="relative overflow-hidden">
+                    <img
+                      src={image.imageUrl || "/placeholder.svg"}
+                      alt={image.title}
+                      className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
+                    <div className="absolute top-4 right-4">
+                      <Badge variant="secondary" className="bg-white/90 text-gray-800">
+                        {image.category}
+                      </Badge>
+                    </div>
+                  </div>
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold text-gray-900 mb-2">{image.title}</h3>
+                    <p className="text-sm text-gray-600 text-pretty">{image.description}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          <div className="text-center mt-12">
+            <Button variant="outline" size="lg" className="gap-2 bg-transparent">
+              <Camera className="h-4 w-4" />
+              View More Photos
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Call to Action */}
+      <section className="bg-primary py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl font-bold text-white mb-4">Stay Connected</h2>
+          <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto text-pretty">
+            Follow us on social media to stay updated with the latest events, announcements, and campus activities
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button size="lg" variant="secondary">
+              Follow on Instagram
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="bg-transparent border-white text-white hover:bg-white hover:text-primary"
+            >
+              Join Facebook Group
+            </Button>
+          </div>
+        </div>
+      </section>
+    </div>
+  )
+}
+this is the events,,,,,   "use client"
+
+import type React from "react"
+
+import { useState } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { MessageSquare, Send, CheckCircle, Star, Users, BookOpen, Building } from "lucide-react"
+
+export default function FeedbackPage() {
+  const [isSubmitted, setIsSubmitted] = useState(false)
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    category: "",
+    rating: "",
+    message: "",
+  })
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    // Simulate form submission
+    setIsSubmitted(true)
+    setTimeout(() => {
+      setIsSubmitted(false)
+      setFormData({ name: "", email: "", category: "", rating: "", message: "" })
+    }, 3000)
+  }
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
+  }
+
+  if (isSubmitted) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card className="max-w-md mx-auto">
+          <CardContent className="text-center py-12">
+            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Thank You!</h2>
+            <p className="text-gray-600">
+              Your feedback has been submitted successfully. We appreciate your input and will review it carefully.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header Section */}
+      <section className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center">
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">Feedback</h1>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto text-pretty">
+              Your feedback helps us improve. Share your thoughts, suggestions, and experiences with us.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid md:grid-cols-2 gap-8">
+          {/* Feedback Form */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="bg-primary/10 p-2 rounded-lg">
+                  <MessageSquare className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <CardTitle>Share Your Feedback</CardTitle>
+                  <CardDescription>Help us serve you better</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Full Name *</Label>
+                    <Input
+                      id="name"
+                      placeholder="Enter your full name"
+                      value={formData.name}
+                      onChange={(e) => handleInputChange("name", e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email Address *</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="Enter your email"
+                      value={formData.email}
+                      onChange={(e) => handleInputChange("email", e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="category">Feedback Category</Label>
+                  <Select value={formData.category} onValueChange={(value) => handleInputChange("category", value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="academics">Academics</SelectItem>
+                      <SelectItem value="facilities">Facilities</SelectItem>
+                      <SelectItem value="faculty">Faculty</SelectItem>
+                      <SelectItem value="administration">Administration</SelectItem>
+                      <SelectItem value="events">Events & Activities</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="rating">Overall Rating</Label>
+                  <Select value={formData.rating} onValueChange={(value) => handleInputChange("rating", value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Rate your experience" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">⭐⭐⭐⭐⭐ Excellent</SelectItem>
+                      <SelectItem value="4">⭐⭐⭐⭐ Very Good</SelectItem>
+                      <SelectItem value="3">⭐⭐⭐ Good</SelectItem>
+                      <SelectItem value="2">⭐⭐ Fair</SelectItem>
+                      <SelectItem value="1">⭐ Poor</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="message">Your Message *</Label>
+                  <Textarea
+                    id="message"
+                    placeholder="Share your detailed feedback, suggestions, or concerns..."
+                    rows={6}
+                    value={formData.message}
+                    onChange={(e) => handleInputChange("message", e.target.value)}
+                    required
+                  />
+                </div>
+
+                <Button type="submit" className="w-full" size="lg">
+                  <Send className="mr-2 h-4 w-4" />
+                  Submit Feedback
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          {/* Feedback Info */}
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Star className="h-5 w-5 text-yellow-500" />
+                  Why Your Feedback Matters
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="bg-blue-100 p-2 rounded-lg">
+                    <BookOpen className="h-4 w-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-900">Improve Academics</h4>
+                    <p className="text-sm text-gray-600">Help us enhance our curriculum and teaching methods</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="bg-green-100 p-2 rounded-lg">
+                    <Building className="h-4 w-4 text-green-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-900">Better Facilities</h4>
+                    <p className="text-sm text-gray-600">Your input helps us upgrade campus infrastructure</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="bg-purple-100 p-2 rounded-lg">
+                    <Users className="h-4 w-4 text-purple-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-900">Student Experience</h4>
+                    <p className="text-sm text-gray-600">Make college life better for current and future students</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Quick Stats</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-primary">1,247</div>
+                    <div className="text-sm text-gray-600">Feedback Received</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-primary">4.6</div>
+                    <div className="text-sm text-gray-600">Average Rating</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-primary">89%</div>
+                    <div className="text-sm text-gray-600">Issues Resolved</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-primary">24h</div>
+                    <div className="text-sm text-gray-600">Response Time</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+this is the feedback,,,,,  import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Camera, Download, Share2 } from "lucide-react"
+
+const galleryImages = [
+  {
+    id: 1,
+    title: "Campus Overview",
+    description: "Aerial view of the beautiful Sunrise College campus",
+    category: "Campus",
+    image: "/modern-college-campus-aerial-view.jpg",
+    date: "Dec 2024",
+  },
+  {
+    id: 2,
+    title: "Computer Science Lab",
+    description: "State-of-the-art computer laboratory with latest equipment",
+    category: "Facilities",
+    image: "/modern-computer-science-laboratory.jpg",
+    date: "Nov 2024",
+  },
+  {
+    id: 3,
+    title: "Graduation Ceremony 2024",
+    description: "Proud graduates celebrating their achievements",
+    category: "Events",
+    image: "/college-graduation-ceremony-students-celebrating.jpg",
+    date: "May 2024",
+  },
+  {
+    id: 4,
+    title: "Library Reading Hall",
+    description: "Spacious library with extensive collection of books and journals",
+    category: "Facilities",
+    image: "/modern-college-library-reading-hall.jpg",
+    date: "Oct 2024",
+  },
+  {
+    id: 5,
+    title: "Tech Fest 2024",
+    description: "Students showcasing their innovative projects",
+    category: "Events",
+    image: "/college-tech-fest-students-with-projects.jpg",
+    date: "Mar 2024",
+  },
+  {
+    id: 6,
+    title: "Sports Complex",
+    description: "Modern sports facilities for various athletic activities",
+    category: "Facilities",
+    image: "/college-sports-complex-basketball-court.jpg",
+    date: "Sep 2024",
+  },
+  {
+    id: 7,
+    title: "Cultural Performance",
+    description: "Students performing traditional dance during cultural night",
+    category: "Events",
+    image: "/college-cultural-performance-traditional-dance.jpg",
+    date: "Feb 2024",
+  },
+  {
+    id: 8,
+    title: "Engineering Workshop",
+    description: "Hands-on learning in the mechanical engineering workshop",
+    category: "Facilities",
+    image: "/engineering-workshop-students-working-machines.jpg",
+    date: "Jan 2024",
+  },
+  {
+    id: 9,
+    title: "Student Life",
+    description: "Students enjoying campus life and friendships",
+    category: "Campus",
+    image: "/college-students-campus-life-friendship.jpg",
+    date: "Aug 2024",
+  },
+]
+
+const categoryColors = {
+  Campus: "bg-blue-100 text-blue-800",
+  Facilities: "bg-green-100 text-green-800",
+  Events: "bg-purple-100 text-purple-800",
+}
+
+export default function GalleryPage() {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header Section */}
+      <section className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center">
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">Photo Gallery</h1>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto text-pretty">
+              Explore our vibrant campus life, modern facilities, and memorable moments through our photo collection
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Gallery Grid */}
+      <section className="py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {galleryImages.map((image) => (
+              <Card key={image.id} className="overflow-hidden hover:shadow-xl transition-all duration-300 group">
+                <div className="relative overflow-hidden">
+                  <img
+                    src={image.image || "/placeholder.svg"}
+                    alt={image.title}
+                    className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-300" />
+                  <div className="absolute top-4 right-4">
+                    <Badge
+                      variant="secondary"
+                      className={categoryColors[image.category as keyof typeof categoryColors]}
+                    >
+                      {image.category}
+                    </Badge>
+                  </div>
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="secondary" className="bg-white/90 text-gray-800 hover:bg-white">
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="secondary" className="bg-white/90 text-gray-800 hover:bg-white">
+                        <Share2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <h3 className="font-semibold text-gray-900 text-balance">{image.title}</h3>
+                    <span className="text-xs text-gray-500 whitespace-nowrap">{image.date}</span>
+                  </div>
+                  <p className="text-sm text-gray-600 text-pretty">{image.description}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <div className="text-center mt-12">
+            <Button variant="outline" size="lg" className="gap-2 bg-transparent">
+              <Camera className="h-4 w-4" />
+              Load More Photos
+            </Button>
+          </div>
+        </div>
+      </section>
+    </div>
+  )
+}
+this is the gallery,,,,    "use client"
+
+import { useState, useEffect } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Download, FileText, Calendar, User, Filter, BookOpen, Search } from "lucide-react"
+import { Input } from "@/components/ui/input"
+
+interface Note {
+  _id: string
+  title: string
+  branch: string
+  semester: number
+  subjectCode: string
+  fileName: string
+  uploadedBy: string
+  createdAt: string
+  fileUrl?: string
+  downloads?: number
+  fileSize?: string
+  type?: string
+}
+
+const branches = [
+  { value: "all", label: "All Branches" },
+  { value: "CSE", label: "Computer Science & Engineering" },
+  { value: "ECE", label: "Electronics & Communication" },
+  { value: "Civil", label: "Civil Engineering" },
+  { value: "Silk & Textile", label: "Silk & Textile Engineering" },
+]
+
+const semesters = [
+  { value: "all", label: "All Semesters" },
+  { value: "1", label: "Semester 1" },
+  { value: "2", label: "Semester 2" },
+  { value: "3", label: "Semester 3" },
+  { value: "4", label: "Semester 4" },
+  { value: "5", label: "Semester 5" },
+  { value: "6", label: "Semester 6" },
+  { value: "7", label: "Semester 7" },
+  { value: "8", label: "Semester 8" },
+]
+
+const typeColors = {
+  "Lecture Notes": "bg-blue-100 text-blue-800",
+  "Complete Notes": "bg-green-100 text-green-800",
+  "Chapter Notes": "bg-yellow-100 text-yellow-800",
+  "Lab Manual": "bg-purple-100 text-purple-800",
+  "Reference Material": "bg-orange-100 text-orange-800",
+}
+
+export default function NotesPage() {
+  const [notes, setNotes] = useState<Note[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+  const [selectedBranch, setSelectedBranch] = useState("all")
+  const [selectedSemester, setSelectedSemester] = useState("all")
+  const [searchQuery, setSearchQuery] = useState("")
+
+  useEffect(() => {
+    fetchNotes()
+  }, [])
+
+  const fetchNotes = async () => {
+    try {
+      const res = await fetch("http://localhost:5000/api/notes")
+      const data = await res.json()
+      if (data.success) {
+        setNotes(data.data)
+      } else {
+        setError("Failed to load notes")
+      }
+    } catch (err) {
+      console.error("Error fetching notes:", err)
+      setError("Failed to load notes")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const filteredNotes = notes.filter((note) => {
+    const branchMatch = selectedBranch === "all" || note.branch === selectedBranch
+    const semesterMatch = selectedSemester === "all" || note.semester.toString() === selectedSemester
+    const searchMatch =
+      searchQuery === "" ||
+      note.subjectCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      note.title.toLowerCase().includes(searchQuery.toLowerCase())
+    return branchMatch && semesterMatch && searchMatch
+  })
+
+  const handleDownload = async (noteId: string, fileName: string) => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/notes/${noteId}/download`)
+      if (res.ok) {
+        const blob = await res.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = url
+        a.download = fileName
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+      } else {
+        alert("Failed to download file")
+      }
+    } catch (err) {
+      console.error("Download error:", err)
+      alert("Failed to download file")
+    }
+  }
+
+  const getBranchName = (branch: string) => {
+    const branchObj = branches.find((b) => b.value === branch)
+    return branchObj ? branchObj.label : branch
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading notes...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>Try Again</Button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header Section */}
+      <section className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center">
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">Study Notes</h1>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto text-pretty">
+              Access comprehensive study materials, lecture notes, and reference documents for all departments and
+              semesters
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Filters Section */}
+      <section className="bg-white border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-2">
+              <Filter className="h-5 w-5 text-gray-500" />
+              <span className="font-medium text-gray-700">Filter and Search:</span>
+            </div>
+
+            <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center">
+              <div className="flex-1 max-w-md">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Search by subject code (e.g., BCS401) or title..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="min-w-[200px]">
+                  <Select value={selectedBranch} onValueChange={setSelectedBranch}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Branch" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {branches.map((branch) => (
+                        <SelectItem key={branch.value} value={branch.value}>
+                          {branch.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="min-w-[150px]">
+                  <Select value={selectedSemester} onValueChange={setSelectedSemester}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Semester" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {semesters.map((semester) => (
+                        <SelectItem key={semester.value} value={semester.value}>
+                          {semester.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="text-sm text-gray-600 flex items-center">
+                  Showing {filteredNotes.length} of {notes.length} notes
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Notes Grid */}
+      <section className="py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {filteredNotes.length === 0 ? (
+            <div className="text-center py-12">
+              <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No notes found</h3>
+              <p className="text-gray-600">Try adjusting your filters to see more results.</p>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {filteredNotes.map((note) => (
+                <Card key={note._id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className="bg-primary/10 p-2 rounded-lg">
+                          <FileText className="h-4 w-4 text-primary" />
+                        </div>
+                        <Badge
+                          variant="secondary"
+                          className={typeColors[note.type as keyof typeof typeColors] || "bg-gray-100 text-gray-800"}
+                        >
+                          {note.type || "Notes"}
+                        </Badge>
+                      </div>
+                      <Badge variant="outline" className="text-xs">
+                        Sem {note.semester}
+                      </Badge>
+                    </div>
+                    <CardTitle className="text-lg leading-tight text-balance">{note.title}</CardTitle>
+                    <CardDescription>
+                      {note.subjectCode} • {getBranchName(note.branch)}
+                    </CardDescription>
+                  </CardHeader>
+
+                  <CardContent className="pt-0">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-4 text-sm text-gray-600">
+                        <div className="flex items-center gap-1">
+                          <User className="h-3 w-3" />
+                          <span>{note.uploadedBy}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-4 text-sm text-gray-600">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          <span>{new Date(note.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        {note.downloads && (
+                          <div className="flex items-center gap-1">
+                            <Download className="h-3 w-3" />
+                            <span>{note.downloads} downloads</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2">
+                        <span className="text-sm text-gray-500">{note.fileSize || "PDF"}</span>
+                        <Button size="sm" className="gap-2" onClick={() => handleDownload(note._id, note.fileName)}>
+                          <Download className="h-3 w-3" />
+                          Download PDF
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Upload Section */}
+      <section className="bg-blue-50 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Have study materials to share?</h2>
+          <p className="text-gray-600 mb-6 max-w-2xl mx-auto text-pretty">
+            Help your fellow students by uploading your notes, assignments, and study materials. All uploads are
+            reviewed by faculty before being made available.
+          </p>
+          <Button size="lg" variant="outline" asChild>
+            <a href="/admin/login">Upload Notes</a>
+          </Button>
+        </div>
+      </section>
+    </div>
+  )
+}
+this is the notes ,    we built a clg website using v0 vercel and this is the features it has events login feedback annoucnemtns notes deaprtments contact department and all and i dont know how to build a backend for this so can you help me in step by step in doing this since im a beginner and i never done this , well only adim can change events annoucnments and upload notes and all people can download the notes
