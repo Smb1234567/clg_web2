@@ -107,7 +107,7 @@ export default function AdminDashboard() {
     fetchNotes()
     fetchEvents()
     fetchGalleryImages()
-  }, [router])
+  }, [router.pathname])
 
   const fetchAnnouncements = async () => {
     try {
@@ -115,9 +115,12 @@ export default function AdminDashboard() {
       const data = await res.json()
       if (data.success) {
         setAnnouncements(data.data)
+      } else {
+        setAnnouncements([]) // 👈 Fallback to empty array
       }
     } catch (err) {
       console.error("Error fetching announcements:", err)
+      setAnnouncements([]) // 👈 Fallback to empty array
     }
   }
 
@@ -127,9 +130,12 @@ export default function AdminDashboard() {
       const data = await res.json()
       if (data.success) {
         setNotes(data.data)
+      } else {
+        setNotes([]) // 👈 Fallback to empty array
       }
     } catch (err) {
       console.error("Error fetching notes:", err)
+      setNotes([]) // 👈 Fallback to empty array
     }
   }
 
@@ -139,9 +145,12 @@ export default function AdminDashboard() {
       const data = await res.json()
       if (data.success) {
         setEvents(data.data)
+      } else {
+        setEvents([]) // 👈 Fallback to empty array
       }
     } catch (err) {
       console.error("Error fetching events:", err)
+      setEvents([]) // 👈 Fallback to empty array
     }
   }
 
@@ -151,6 +160,8 @@ export default function AdminDashboard() {
       const data = await res.json()
       if (data.success) {
         setGalleryImages(data.data)
+      } else {
+        setGalleryImages([]) // 👈 Fallback to empty array
       }
     } catch (err) {
       console.log("[v0] Backend not available, using demo gallery data")
@@ -813,7 +824,7 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4 max-h-96 overflow-y-auto">
-                {announcements.slice(0, 5).map((announcement) => (
+                {Array.isArray(announcements) && announcements.slice(0, 5).map((announcement) => (
                   <div key={announcement._id} className="border rounded-lg p-3">
                     <div className="flex items-start justify-between gap-2">
                       <h4 className="font-medium text-sm">{announcement.title}</h4>
@@ -841,7 +852,7 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4 max-h-96 overflow-y-auto">
-                {events.slice(0, 5).map((event) => (
+                {Array.isArray(events) && events.slice(0, 5).map((event) => (
                   <div key={event._id} className="border rounded-lg p-3">
                     <div className="flex items-start justify-between gap-2">
                       <h4 className="font-medium text-sm">{event.title}</h4>
@@ -873,7 +884,7 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {notes.slice(0, 6).map((note) => (
+                {Array.isArray(notes) && notes.slice(0, 6).map((note) => (
                   <div key={note._id} className="border rounded-lg p-4">
                     <h4 className="font-medium text-sm mb-2">{note.title}</h4>
                     <div className="space-y-1 text-xs text-gray-600">
@@ -909,7 +920,7 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {galleryImages.map((image) => (
+                {Array.isArray(galleryImages) && galleryImages.map((image) => (
                   <div key={image._id} className="border rounded-lg overflow-hidden">
                     <img
                       src={image.imageUrl || "/placeholder.svg"}

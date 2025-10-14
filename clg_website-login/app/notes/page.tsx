@@ -59,6 +59,9 @@ export default function NotesPage() {
   const [selectedSemester, setSelectedSemester] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
 
+  // Helper to ensure notes is always an array
+  const safeNotes = Array.isArray(notes) ? notes : []
+
   useEffect(() => {
     fetchNotes()
   }, [])
@@ -71,16 +74,18 @@ export default function NotesPage() {
         setNotes(data.data)
       } else {
         setError("Failed to load notes")
+        setNotes([]) // 👈 Fallback to empty array
       }
     } catch (err) {
       console.error("Error fetching notes:", err)
       setError("Failed to load notes")
+      setNotes([]) // 👈 Fallback to empty array
     } finally {
       setLoading(false)
     }
   }
 
-  const filteredNotes = notes.filter((note) => {
+  const filteredNotes = safeNotes.filter((note) => {
     const branchMatch = selectedBranch === "all" || note.branch === selectedBranch
     const semesterMatch = selectedSemester === "all" || note.semester.toString() === selectedSemester
     const searchMatch =
@@ -208,7 +213,7 @@ export default function NotesPage() {
                 </div>
 
                 <div className="text-sm text-gray-600 flex items-center">
-                  Showing {filteredNotes.length} of {notes.length} notes
+                  Showing {filteredNotes.length} of {safeNotes.length} notes
                 </div>
               </div>
             </div>

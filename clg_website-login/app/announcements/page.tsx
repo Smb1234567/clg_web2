@@ -34,6 +34,9 @@ export default function AnnouncementsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Helper to ensure announcements is always an array
+  const safeAnnouncements = Array.isArray(announcements) ? announcements : []
+
   useEffect(() => {
     const fetchAnnouncements = async () => {
       try {
@@ -43,9 +46,11 @@ export default function AnnouncementsPage() {
           setAnnouncements(data.data)
         } else {
           setError("Failed to fetch announcements")
+          setAnnouncements([]) // 👈 Fallback to empty array
         }
       } catch (err) {
         setError("Error connecting to server. Please try again later.")
+        setAnnouncements([]) // 👈 Fallback to empty array
         console.error("Error fetching announcements:", err)
       } finally {
         setLoading(false)
@@ -95,13 +100,13 @@ export default function AnnouncementsPage() {
       {/* Announcements Grid */}
       <section className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {announcements.length === 0 ? (
+          {safeAnnouncements.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-600">No announcements available at the moment.</p>
             </div>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {announcements.map((announcement) => {
+              {safeAnnouncements.map((announcement) => {
                 const category = announcement.category || "Academic"
                 const IconComponent = categoryIcons[category as keyof typeof categoryIcons] || BookOpen
                 const formattedDate = new Date(announcement.createdAt).toLocaleDateString("en-IN", {
