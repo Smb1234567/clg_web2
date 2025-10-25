@@ -6,6 +6,7 @@ const announcementSchema = new mongoose.Schema({
   content: { type: String, required: true },
   category: { type: String, default: "Academic" },
   urgent: { type: Boolean, default: false },
+  uploadedBy: { type: String, required: true },
   createdAt: { type: Date, default: Date.now },
 });
 

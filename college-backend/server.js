@@ -5,6 +5,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const eventRoutes = require("./routes/events");
+const galleryRoutes = require("./routes/gallery");
 
 dotenv.config();
 
@@ -15,7 +16,11 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 app.use(express.static("uploads")); // Serve uploaded files
+
+
 app.use("/api/events", eventRoutes);
+app.use("/api/gallery", galleryRoutes);
+
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost:27017/clg_website_db", {

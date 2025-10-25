@@ -140,10 +140,12 @@ export default function AdminDashboard() {
   }
 
   const fetchEvents = async () => {
+    console.log("Fetching events...")
     try {
       const res = await fetch("http://localhost:5000/api/events")
       const data = await res.json()
       if (data.success) {
+        console.log("Fetched events:", data.data.length)
         setEvents(data.data)
       } else {
         setEvents([]) // 👈 Fallback to empty array
@@ -206,7 +208,7 @@ export default function AdminDashboard() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ title, content, category, urgent }),
+        body: JSON.stringify({ title, content, category, urgent, uploadedBy: "admin"}),
       })
 
       const data = await res.json()
@@ -253,6 +255,7 @@ export default function AdminDashboard() {
       formData.append("branch", noteBranch)
       formData.append("semester", noteSemester)
       formData.append("subjectCode", subjectCode)
+      formData.append("uploadedBy", "admin") 
 
       const res = await fetch("http://localhost:5000/api/notes", {
         method: "POST",
@@ -310,6 +313,7 @@ export default function AdminDashboard() {
           category: eventCategory,
           attendees: eventAttendees,
           featured: eventFeatured,
+          uploadedBy: "admin"
         }),
       })
 
@@ -373,6 +377,7 @@ export default function AdminDashboard() {
         formData.append("title", galleryTitle)
         formData.append("description", galleryDescription)
         formData.append("category", galleryCategory)
+        formData.append("uploadedBy", "admin") 
 
         const res = await fetch("http://localhost:5000/api/gallery", {
           method: "POST",

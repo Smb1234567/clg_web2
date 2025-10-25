@@ -21,16 +21,28 @@ const storage = multer.diskStorage({
   },
 });
 
-// Only allow PDFs for notes
-const upload = multer({
-  storage: storage,
-  fileFilter: (req, file, cb) => {
+// File filter based on route
+const fileFilter = (req, file, cb) => {
+  if (req.baseUrl.includes("notes")) {
+    // For notes: only PDFs
     if (file.mimetype === "application/pdf") {
       cb(null, true);
     } else {
-      cb(new Error("Only PDF files are allowed"));
+      cb(new Error("Only PDF files are allowed for notes"));
     }
-  },
-});
+  } else if (req.baseUrl.includes("gallery")) {
+    // For gallery: allow images
+    if (file.mimetype.startsWith("image/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only image files are allowed for gallery"));
+    }
+  } else {
+    cb(new Error("Invalid upload type"));
+  }
+};
+
+// Create upload middleware
+const upload = multer({ storage, fileFilter });
 
 module.exports = upload;

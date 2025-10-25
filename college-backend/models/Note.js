@@ -8,7 +8,8 @@ const noteSchema = new mongoose.Schema({
   subjectCode: { type: String, required: true }, // e.g., CS101
   fileName: { type: String, required: true }, // original name like "ds-unit1.pdf"
   filePath: { type: String, required: true }, // path like "/uploads/notes/ds-unit1.pdf"
-  uploadedBy: { type: String, default: "admin" },
+  //uploadedBy: { type: String, default: "admin" },
+  uploadedBy: { type: String, required: true },
   createdAt: { type: Date, default: Date.now }
 });
 
